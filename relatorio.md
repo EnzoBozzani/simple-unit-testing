@@ -339,5 +339,12 @@ def test_integracao_resultado_divisao_em_multiplicacao(self):
         self.assertIn("4.0 * 7 = 28.0", calc.historico)
 ```
 
+## Lições aprendidas sobre cada tipo de teste
 
+**Testes de Unidade:**
 
+São cruciais para validar a lógica de cada método de forma isolada. Eles se mostram eficazes para cobrir cenários específicos e casos-limite, como a divisão por zero, que deve levantar um `ValueError`, e o uso de tipos de dados inválidos, como `bool`, que precisa gerar um `TypeError` específico. Além disso, garantem que as mensagens de erro correspondentes a cada exceção sejam lançadas conforme o esperado, validando o comportamento do tratamento de falhas.
+
+**Testes de Integração:**
+
+Verificam como as diferentes partes do código funcionam em conjunto, confirmando que o valor de `obter_ultimo_resultado()` pode ser usado como entrada para a operação seguinte. Esses testes validam a consistência do estado da calculadora ao longo de múltiplas operações, garantindo que o `resultado` final e o `historico` acumulado estejam corretos após uma sequência de cálculos. Eles simulam um fluxo de uso mais realista, validando um processo completo, como realizar uma cadeia de cálculos interdependentes.
