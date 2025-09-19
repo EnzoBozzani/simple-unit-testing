@@ -24,13 +24,71 @@ Nenhum
 Para a validação dos tipos foi criado um novo método que é reutilizado em todos os métodos de operações matemáticas. **Também foi adicionada uma verificação se o tipo do operando é bool, que no caso é instância de int então a verificação anterior não era suficiente para valores booleanos**:
 
 ```python
-def _validar_operandos(self, *args):
+def _validar_operandos(self, *args: Number) -> Tuple[Number, ...]:
+    if not args:
+        raise ValueError("Pelo menos um argumento deve ser informado")
+
+    valores: List[Number] = []
     for valor in args:
+        if isinstance(valor, bool):
+            raise TypeError(
+                "Argumentos devem ser numeros (por mais que bool seja considerado instância de int, não é valido)"
+            )
         if not isinstance(valor, (int, float)):
             raise TypeError("Argumentos devem ser numeros")
-        if isinstance(valor, bool):
-            raise TypeError("Argumentos devem ser numeros (por mais que bool seja considerado instância de int, não é valido)")
+        if isinstance(valor, float) and math.isnan(valor):
+            raise ValueError("Argumentos nao podem ser NaN")
+        valores.append(valor)
+    return tuple(valores)
 ```
+
+Para impedir que resultados inválidos fossem persistidos foi criado `_verificar_resultado`, que roda antes de registrar qualquer saída. **Também foi incluída a análise explícita de `NaN`, `inf` e números complexos, garantindo que erros sejam disparados ao invés de contaminarem o estado**:
+
+```python
+def _verificar_resultado(self, valor: Union[Number, complex]) -> Number:
+    if isinstance(valor, complex):
+        raise ValueError("Resultados complexos nao sao suportados")
+    if isinstance(valor, float):
+        if math.isnan(valor):
+            raise ValueError("Resultado indefinido (NaN)")
+        if math.isinf(valor):
+            raise OverflowError("Resultado excede o limite representavel")
+    return valor
+```
+
+Para padronizar a atualização do estado interno foi criado `_registrar_operacao`, chamado por todas as operações públicas. **Também foi centralizada a escrita no histórico e no atributo `resultado`, evitando desvios entre métodos**:
+
+```python
+def _registrar_operacao(self, expressao: str, resultado: Number) -> Number:
+    self.historico.append(expressao)
+    self.resultado = resultado
+    return resultado
+```
+
+Para restaurar o estado inicial ao limpar o histórico foi ajustado `limpar_historico`. **Também foi adicionado o reset explícito do último resultado para zero, encerrando o acoplamento com operações antigas**:
+
+```python
+def limpar_historico(self) -> None:
+    self.historico.clear()
+    self.resultado = 0
+```
+
+Para validar o comportamento mais defensivo foi atualizado `test_limite_superior_proximo_float_max`. **Também foram revistos os asserts para esperar `OverflowError`, alinhando a suíte com as novas proteções contra estouro**:
+
+```python
+def test_limite_superior_proximo_float_max(self):
+    calc = Calculadora()
+    max_float = sys.float_info.max
+
+    with self.assertRaises(OverflowError):
+        calc.somar(max_float, max_float)
+
+    with self.assertRaises(OverflowError):
+        calc.multiplicar(max_float, 2)
+```
+
+Testes executados: `pytest`.
+
 
 ## Descrição dos testes 
 
